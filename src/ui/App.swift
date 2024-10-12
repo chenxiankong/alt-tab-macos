@@ -291,7 +291,9 @@ class App: AppCenterApplication, NSApplicationDelegate {
             // (At that point we won't be able to see what the element was, of course.)
             Spaces.refreshAllIdsAndIndexes()
             Windows.updateSpaces()
-            let screen = NSScreen.preferred()
+//            let screen = NSScreen.preferred()
+            
+            let screen = NSScreen.screens.first(where:{$0.frame.contains(NSEvent.mouseLocation) }) ?? NSScreen.preferred()
             self.shortcutIndex = shortcutIndex
             Windows.refreshWhichWindowsToShowTheUser(screen)
             Windows.reorderList()

@@ -20,11 +20,13 @@ class Window {
     var position: CGPoint?
     var size: CGSize?
     var spaceId = CGSSpaceID.max
+    var selfSpaceIds = [UInt64]()
     var spaceIndex = SpaceIndex.max
     var axUiElement: AXUIElement!
     var application: Application
     var axObserver: AXObserver?
     var row: Int?
+    var isNormal: Bool = true
 
     static let notifications = [
         kAXUIElementDestroyedNotification,
@@ -38,6 +40,8 @@ class Window {
     init(_ axUiElement: AXUIElement, _ application: Application, _ wid: CGWindowID, _ axTitle: String?, _ isFullscreen: Bool, _ isMinimized: Bool, _ position: CGPoint?, _ size: CGSize?) {
         // TODO: make a efficient batched AXUIElementCopyMultipleAttributeValues call once for each window, and store the values
         self.axUiElement = axUiElement
+        let subRole = try? axUiElement.subrole()
+        self.isNormal = subRole == "AXStandardWindow"
         self.application = application
         self.cgWindowId = wid
         self.spaceId = Spaces.currentSpaceId
@@ -175,6 +179,9 @@ class Window {
     }
 
     func focus() {
+        let role =  try? self.axUiElement.role()
+        let subRole =  try? self.axUiElement.subrole()
+        debugPrint(self.title,":::",role!,":",subRole)
         if isWindowlessApp || cgWindowId == nil {
             if let bundleID = application.runningApplication.bundleIdentifier {
                 NSWorkspace.shared.launchApplication(withBundleIdentifier: bundleID, additionalEventParamDescriptor: nil, launchIdentifier: nil)
@@ -242,6 +249,8 @@ class Window {
         // note: for some reason, it behaves differently if you minimize the tab group after moving it to another space
         if let cgWindowId = cgWindowId {
             let spaceIds = cgWindowId.spaces()
+            selfSpaceIds = spaceIds
+            debugPrint(cgWindowId.title(),":",spaceIds)
             if spaceIds.count == 1 {
                 spaceId = spaceIds.first!
                 spaceIndex = Spaces.idsAndIndexes.first { $0.0 == spaceIds.first! }!.1
@@ -257,7 +266,14 @@ class Window {
     func isOnScreen(_ screen: NSScreen) -> Bool {
         if NSScreen.screensHaveSeparateSpaces {
             if let screenUuid = screen.uuid(), let screenSpaces = Spaces.screenSpacesMap[screenUuid] {
-                return screenSpaces.contains { $0 == spaceId }
+                for v1 in screenSpaces{
+                    for v2 in selfSpaceIds{
+                        if v1 == v2{
+                            return true
+                        }
+                    }
+                }
+                return false
             }
         } else {
             let referenceWindow = referenceWindowForTabbedWindow()

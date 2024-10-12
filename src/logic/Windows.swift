@@ -78,11 +78,16 @@ class Windows {
         return index
     }
 
+    // todocj
     static func appendAndUpdateFocus(_ window: Window) {
+        if !window.isNormal{
+            return
+        }
         list.forEach {
             $0.lastFocusOrder += 1
         }
         list.append(window)
+        
         if list.count > ThumbnailsView.recycledViews.count {
             ThumbnailsView.recycledViews.append(ThumbnailView())
         }
@@ -298,14 +303,28 @@ class Windows {
     }
 
     static func refreshIfWindowShouldBeShownToTheUser(_ window: Window, _ screen: NSScreen) {
-        window.shouldShowTheUser =
+        var isSameApp = false
+//        let a = window.application.runningApplication.bundleIdentifier!
+        if let a = window.application.runningApplication.bundleIdentifier{
+            if let b = NSWorkspace.shared.frontmostApplication?.bundleIdentifier{
+                if a.contains(b) || b.contains(a) {
+                    isSameApp = true
+                }
+            }
+        }
+        
+//        let b = NSWorkspace.shared.frontmostApplication!.bundleIdentifier!
+       
+        window.shouldShowTheUser = window.isNormal &&
             !(window.application.runningApplication.bundleIdentifier.flatMap { id in
                 Preferences.blacklist.contains {
                     id.hasPrefix($0.bundleIdentifier) &&
                         ($0.hide == .always || (window.isWindowlessApp && $0.hide != .none))
                 }
             } ?? false) &&
-            !(Preferences.appsToShow[App.app.shortcutIndex] == .active && window.application.runningApplication.processIdentifier != NSWorkspace.shared.frontmostApplication?.processIdentifier) &&
+            !(Preferences.appsToShow[App.app.shortcutIndex] == .active &&
+//              window.application.runningApplication.processIdentifier != NSWorkspace.shared.frontmostApplication?.processIdentifier) &&
+              !isSameApp) &&
             !(!(Preferences.showHiddenWindows[App.app.shortcutIndex] != .hide) && window.isHidden) &&
             ((!Preferences.hideWindowlessApps && window.isWindowlessApp) ||
                 !window.isWindowlessApp &&

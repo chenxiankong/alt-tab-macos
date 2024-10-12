@@ -67,6 +67,7 @@ class Application: NSObject {
                 // bug in macOS: sometimes the OS returns multiple duplicate windows (e.g. Mail.app starting at login)
                 try Array(Set(axWindows_)).forEach { axWindow in
                     if let wid = try axWindow.cgWindowId() {
+                        
                         let title = try axWindow.title()
                         let subrole = try axWindow.subrole()
                         let role = try axWindow.role()
